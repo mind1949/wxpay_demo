@@ -94,9 +94,6 @@ func (x XML) ToMap() Map {
 			key = token.Name.Local
 		case xml.CharData: // 标签内容
 			content := string([]byte(token))
-			if strings.HasPrefix(content, "\n") {
-				continue
-			}
 			value = content
 		}
 		if key != "xml" {
@@ -109,7 +106,17 @@ func (x XML) ToMap() Map {
 	return _map
 }
 
+func (x XML) Compact() XML {
+	xmlStr := string(x)
+	// 去除换行符
+	xmlStr = strings.ReplaceAll(xmlStr, "\n", "")
+	// 去除空格
+	xmlStr = strings.ReplaceAll(xmlStr, " ", "")
+	return XML(xmlStr)
+}
+
 func (x XML) String() string {
+	// TODO(添加缩进,换行)
 	return string(x)
 }
 
@@ -241,7 +248,7 @@ func (c *Client) UnifiedOrder(params Map) (Map, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := XML(_res).ToMap()
+	res := XML(_res).Compact().ToMap()
 	return res, nil
 }
 
