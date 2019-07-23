@@ -18,6 +18,7 @@ import (
 const (
 	MD5                    = "MD5" // 默认加密方式
 	HMACSHA256             = "HMAC-SHA256"
+	SUCCESS                = "SUCCESS"
 	bodyType               = "application/xml; charset=utf-8"
 	SandboxGetSignKeyUrl   = "https://api.mch.weixin.qq.com/sandboxnew/pay/getsignkey"   // 获取沙箱签名秘钥
 	SandboxUnifiedOrderUrl = "https://api.mch.weixin.qq.com/sandboxnew/pay/unifiedorder" // 统一下单api(沙箱)
@@ -93,7 +94,9 @@ func (x XML) ToMap() Map {
 			key = token.Name.Local
 		case xml.CharData: // 标签内容
 			content := string([]byte(token))
-			if content == "\n  " { continue }
+			if strings.HasPrefix(content, "\n") {
+				continue
+			}
 			value = content
 		}
 		if key != "xml" {
@@ -150,6 +153,17 @@ func NewClient(account *Account) *Client {
 // 用时间戳生成随机字符串
 func nonceStr() string {
 	return strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+}
+
+// 生成支付签名参数
+func (c *Client) PayParams(nonceStr, prepayID string) Map {
+	//payStringTemp := "appId=%s&nonceStr=%s&package=prepay_id=%s&signType=%s&timeStamp=%s&key=%s"
+	params := make(Map)
+	return params.SetString("appId", c.account.appID).
+		SetString("nonceStr", nonceStr).
+		SetString("package", "prepay_id="+prepayID).
+		SetString("signType", c.signType).
+		SetInt64("timeStamp", time.Now().Unix())
 }
 
 // 签名
