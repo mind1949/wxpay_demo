@@ -20,9 +20,12 @@ const (
 	HMACSHA256             = "HMAC-SHA256"
 	SUCCESS                = "SUCCESS"
 	bodyType               = "application/xml; charset=utf-8"
-	SandboxGetSignKeyUrl   = "https://api.mch.weixin.qq.com/sandboxnew/pay/getsignkey"   // 获取沙箱签名秘钥
+	SandboxGetSignKeyUrl   = "https://api.mch.weixin.qq.com/sandboxnew/pay/getsignkey"   // 获取沙箱签名秘钥api
 	SandboxUnifiedOrderUrl = "https://api.mch.weixin.qq.com/sandboxnew/pay/unifiedorder" // 统一下单api(沙箱)
+	SandboxOrderQueryUrl   = "https://api.mch.weixin.qq.com/sandboxnew/pay/orderquery"   // 查询订单api
 	UnifiedOrderUrl        = "https://api.mch.weixin.qq.com/pay/unifiedorder"            // 统一下单api
+	OrderQueryUrl          = "https://api.mch.weixin.qq.com/pay/orderquery"              // 查询订单api
+
 )
 
 // =======================
@@ -237,6 +240,37 @@ func (c *Client) UnifiedOrder(params Map) (Map, error) {
 		SetString("sign_type", c.signType).
 		SetString("sign", c.Sign(params))
 	// 发送下单请求
+	h := &http.Client{}
+	response, err := h.Post(url, bodyType, strings.NewReader(params.ToXML().String()))
+	if err != nil {
+		return nil, err
+	}
+	// 读取结果
+	_res, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	res := XML(_res).Compact().ToMap()
+	return res, nil
+}
+
+// 查询订单
+func (c *Client) OrderQuery(params Map) (Map, error) {
+	// 指定url
+	var url string
+	if c.account.isSandbox {
+		url = SandboxOrderQueryUrl
+	} else {
+		url = OrderQueryUrl
+	}
+	// 填充account中的数据
+	params = params.SetString("appid", c.account.appID).
+		SetString("mch_id", c.account.mchID).
+		SetString("nonce_str", nonceStr()).
+		SetString("sign_type", c.signType).
+		SetString("sign", c.Sign(params))
+	// 发送查询订单请求
 	h := &http.Client{}
 	response, err := h.Post(url, bodyType, strings.NewReader(params.ToXML().String()))
 	if err != nil {
